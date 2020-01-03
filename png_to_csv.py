@@ -52,6 +52,47 @@ def png_to_csv1(Word1_path, Out_put_path):
     png_to_csv_as(Word1_path, Out_put_path, animal_noid, study_name)
 
 
+def Reset_index(df):
+    col_li = list(df.columns.level[0])
+    col_li = col_li[1:]
+    col_li.reverse()
+    col_li0 = list(df.columns.level[1])
+    col_li.extend(col_li0)
+    df.columns = col_li
+
+
+def sex_group(df,index):
+    df = df[~df['动物编号'].isin(['-'])]
+    df['sex'] = df['动物编号'].apply(lambda x: x[1])
+    df7_1 = df[df['sex'].isin(['M'])]
+    df7_2 = df[df['sex'].isin(['F'])]
+    df7_index = list(set(df["试验阶段"]))
+    df7_1_index = list(set(df7_1["试验阶段"]))
+    df7_2_index = list(set(df7_2["试验阶段"]))
+    title_list4 = list(
+        map(lambda x: '{}'.format(x, str(x)), [index + '_' + str(j)[2:] for j in df7_index]))
+    title_list5 = list(
+        map(lambda x: '{}'.format(x, str(x)), [index + '_' + str(j)[2:] for j in df7_1_index]))
+    title_list6 = list(
+        map(lambda x: '{}'.format(x, str(x)), [index + '_' + str(j)[2:] for j in df7_2_index]))
+    print(df)
+    df9 =   df.pivot_table(index = '动物编号',  columns = '试验阶段',values=index)
+    df9_1 = df7_1.pivot_table(index='动物编号', columns='试验阶段', values=index)
+    df9_2 = df7_2.pivot_table(index='动物编号', columns='试验阶段', values=index)
+
+    for i in df7_1_index:
+        df9_1[i] = df9_1[i].apply(lambda x: "%.1f" % x)
+    for i in df7_2_index:
+        df9_2[i] = df9_2[i].apply(lambda x: "%.1f" % x)
+    df9 = df9.replace('nan','')
+    df9_1 = df9_1.replace('nan', '')
+    df9_2 = df9_2.replace('nan', '')
+    df9.columns = title_list4
+    df9_1.columns = title_list5
+    df9_2.columns = title_list6
+    return df9, df9_1, df9_2
+
+
 def png_to_csv_as(Word1_path, Out_put_path, animal_noid, study_name):
     png_list = Word_to_html(Word1_path + '\\' )
     Word1_path = Word1_path + '\\'      
@@ -130,19 +171,20 @@ def png_to_csv_as(Word1_path, Out_put_path, animal_noid, study_name):
     dfok.sort_values(by=['试验阶段', '动物编号'], axis=0, ascending=[True, True], inplace=True )  # 先依据试验阶段排序因为实验阶段有前标，在以动物编号排序axis0 纵向 ascending 升降排序，inplace=True 原文替换.
     df1 = dfok
     dfok.to_excel(Out_put_path + '\\' + '原始数据.xlsx')
-    
 
     #  以下为个体原始数据
     df6 = df1[[u'动物编号',u'试验阶段',u'mean呼吸幅度(g)']]
     df7 = df1[[u'动物编号',u'试验阶段',u'mean呼吸频率(次/分)']]
     #  转置 长转宽需要替换不然顺序会不对
-    df8 = df6.pivot_table(index = '动物编号',columns = '试验阶段',values = 'mean呼吸幅度(g)')
+    df8, df8_1, df8_2 = sex_group(df6, 'mean呼吸幅度(g)')
     df8.to_excel(Out_put_path + '\\' + '个体数据统计mean呼吸幅度(g).xlsx')
-    df9 = df7.pivot_table(index = '动物编号',columns = '试验阶段',values = 'mean呼吸频率(次/分)')
+    df9, df9_1, df9_2 = sex_group(df7, 'mean呼吸频率(次/分)')
     df9.to_excel(Out_put_path + '\\' + '个体数据统计mean呼吸频率.xlsx')
-    df10 = df1[[u'动物编号',u'试验阶段',u'mean呼吸频率(次/分)',u'mean呼吸幅度(g)',]]
+
+    df10 = df1[[u'动物编号',u'试验阶段',u'呼吸频率(次/分)',u'呼吸幅度(g)',]]
     df10.to_excel(Out_put_path + '总表mean呼吸频率呼吸幅度.xlsx')
-    df_to_xls(dfok, Out_put_path + '\\' + '原始数据ok.xlsx', Table_Title_A=study_name)  # 转换一个格式内容到xlsx
+    df_total = [dfok, df8_1, df8_2, df9_1, df9_2]
+    df_to_xls(df_total, Out_put_path + '\\' + '原始数据ok.xlsx', Table_Title_A=study_name)  # 转换一个格式内容到xlsx
 
 
 def img_crop_01(filepng, png_list, path_png_list):
@@ -152,7 +194,7 @@ def img_crop_01(filepng, png_list, path_png_list):
     img_size = img.size
     h = img_size[1]  # 图片高度
     w = img_size[0]  # 图片宽度
-    # 图片位置情况1 
+    # 图片位置情况1
     x = 0.796 * w
     y = 0.215 * h
     w = 0.10 * w
@@ -186,7 +228,8 @@ def img_crop_02(filepng, png_list, path_png_list):
     # 开始截取
     region = img.crop((x, y, x + w, y + h))
     # 保存图片
-    L = region.convert('L') 
+    L = region.convert('L')
+    #L.show()
     # 保存图片
     L.save(png_list[path_png_list] + "temp02.png")
     # 返回pytesseract识别的数据.
@@ -217,6 +260,6 @@ def Word_to_html(Word_path):  #定义转换wordtohtml函数
 
 
 if __name__ == '__main__':
-    Word1_path = r'K:\mashuaifei\cecececececeehsishi\新建文件夹'
-    Out_put_path = r'K:\mashuaifei\cecececececeehsishi\新建文件夹\新建文件夹'
+    Word1_path = input('文件夹')
+    Out_put_path = input('文件夹')
     png_to_csv1(Word1_path, Out_put_path)

@@ -3,16 +3,16 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Border, Side, Alignment
 from openpyxl.styles import Font
-
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.cell.cell import WriteOnlyCell
 
 def read_ex(path_xls):
     df = pd.read_excel(path_xls)
     return df
 
 
-def df_to_xls(Data_Frame, to_xls_name, Table_Title_A='A2018025-T014-01'):
-
-    df = Data_Frame
+def df_to_xls(Data_Frame_list, to_xls_name, Table_Title_A='A2018025-T014-01'):
+    df = Data_Frame_list[0]
     wb = Workbook()  # 实例化
     ws = wb.active  # 激活一个sheet 默认0 sheet
     Table_Title_M = '{} 雄性动物呼吸'.format(Table_Title_A)
@@ -186,7 +186,24 @@ def df_to_xls(Data_Frame, to_xls_name, Table_Title_A='A2018025-T014-01'):
 
     for i in range(2, df_F.index.size * 4 + 3):  # F性别
         for f in range(9, 16):
-            ws.cell(row=i, column=f).border = border_All
+                ws.cell(row=i, column=f).border = border_All
+
+    df1 = Data_Frame_list[1]
+    ws1 = wb.create_sheet(title='呼吸幅度M', index=2)
+    for r in dataframe_to_rows(df1, index=True, header=True):
+        ws1.append(r)
+    df2 = Data_Frame_list[2]
+    ws1 = wb.create_sheet(title='呼吸幅度F', index=3)
+    for r in dataframe_to_rows(df2, index=True, header=True):
+        ws1.append(r)
+    df3 = Data_Frame_list[3]
+    ws1 = wb.create_sheet(title='呼吸频率M', index=4)
+    for r in dataframe_to_rows(df3, index=True, header=True):
+        ws1.append(r)
+    df4 = Data_Frame_list[4]
+    ws1 = wb.create_sheet(title='呼吸频率F', index=5)
+    for r in dataframe_to_rows(df4, index=True, header=True):
+        ws1.append(r)
 
     wb.save(to_xls_name)
 
